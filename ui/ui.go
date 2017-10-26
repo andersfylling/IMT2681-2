@@ -9,14 +9,16 @@ import (
 
 	"net/http"
 
+	"github.com/andersfylling/IMT2681-2/ui/middlewares"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/valve"
-	"github.com/sciencefyll/IMT2681-2/ui/middlewares"
 )
 
 // UI Set up a web interface in a seperate thread
 // Inspired from: https://github.com/btcsuite/btcd/blob/master/btcd.go
 func UI(done chan error) {
+
+	fmt.Println("Starting http server..")
 
 	// Our graceful valve shut-off package to manage code preemption and
 	// shutdown signaling.

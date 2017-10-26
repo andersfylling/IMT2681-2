@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/sciencefyll/IMT2681-2/services"
-	"github.com/sciencefyll/IMT2681-2/ui"
+	"github.com/andersfylling/IMT2681-2/services"
+	"github.com/andersfylling/IMT2681-2/ui"
 )
 
 func main() {
