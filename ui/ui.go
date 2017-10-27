@@ -90,27 +90,31 @@ func UI(done chan error, sig chan struct{}) {
 	srv := http.Server{Addr: port, Handler: chi.ServerBaseContext(baseCtx, router)}
 
 	go func() {
-		for range sig {
-			// time to terminate web server
-			fmt.Println("\tWeb server .. ")
-
-			// first valv
-			valv.Shutdown(1 * time.Second)
-
-			// create context with timeout
-			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-			defer cancel()
-
-			// start http shutdown
-			srv.Shutdown(ctx)
-
-			// verify, in worst case call cancel via defer
+		for {
 			select {
-			case <-time.After(5 * time.Second):
-				fmt.Println("not all connections done")
-			case <-ctx.Done():
-				fmt.Println("OK")
-				return
+			case <-sig:
+				// time to terminate web server
+				fmt.Println("\tWeb server .. ")
+
+				// first valv
+				valv.Shutdown(1 * time.Second)
+
+				// create context with timeout
+				ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+				defer cancel()
+
+				// start http shutdown
+				srv.Shutdown(ctx)
+
+				// verify, in worst case call cancel via defer
+				select {
+				case <-time.After(5 * time.Second):
+					fmt.Println("not all connections done")
+				case <-ctx.Done():
+					return
+				}
+			default:
+				time.Sleep(time.Millisecond * 100)
 			}
 		}
 	}()

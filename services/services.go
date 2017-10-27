@@ -32,24 +32,29 @@ func Run(done chan error, sig chan struct{}) {
 	// the run loop
 	go func() {
 		for {
+			timeout := time.Duration(0)
 			select {
 			case <-sig: // stop service loop
 				time.Sleep(100 * time.Millisecond)
-				fmt.Print("\tServices .. ")
+				fmt.Println("\tServices .. ")
 
 				// empty all services
 				for _, srv := range runnableServices {
 					srv.Empty()
 				}
 
-				fmt.Println("OK")
 				done <- nil
 
 				return
 
 			default: // run services
+				time.Sleep(timeout * time.Millisecond)
 				for _, srv := range runnableServices {
-					srv.Run()
+					if srv.Timeout() == 0 {
+						srv.Run()
+					} else if timeout < srv.Timeout() {
+						timeout = srv.Timeout()
+					}
 				}
 			}
 		}

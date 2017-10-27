@@ -27,13 +27,23 @@ func main() {
 
 	time.Sleep(10 * time.Millisecond)
 	fmt.Println("Program is now running.  Press CTRL-C to exit.")
+
+	// Shut down using timeout by simulating the interupt signal
+	// go func() {
+	// 	time.Sleep(3 * time.Second)
+	//
+	// 	termSignal <- os.Signal(os.Interrupt)
+	// }()
+
 	<-termSignal
 	fmt.Println("\nShutting down..")
 	close(stop)
 
 	// wait for things to completely stop
 	<-servicesChan
+	fmt.Println("\tServices OK")
 	<-webserverChan
+	fmt.Println("\tWeb server OK")
 
 	// all is done
 	fmt.Println("Shutdown complete")

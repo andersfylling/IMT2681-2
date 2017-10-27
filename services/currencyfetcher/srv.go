@@ -1,7 +1,9 @@
 package currencyfetcher
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/andersfylling/IMT2681-2/services/service"
@@ -16,6 +18,18 @@ var lastRun = getTimeInMilli()
 
 func getTimeSinceLastRun() float64 {
 	return float64(lastRun-getTimeInMilli()) * 1000.0
+}
+
+var myClient = &http.Client{Timeout: 5 * time.Second}
+
+func getJSON(url string, target interface{}) error {
+	r, err := myClient.Get(url)
+	if err != nil {
+		return err
+	}
+	defer r.Body.Close()
+
+	return json.NewDecoder(r.Body).Decode(target)
 }
 
 // Service is of type service.Interface
@@ -55,18 +69,25 @@ func (srv *Service) Run() {
 	// get request to the website for getting currency data
 	// store the data in the struct or return it?
 	fmt.Println("testing service..")
+
+	currency := Info{}
+	err := getJSON("https://api.bitfinex.com/v1/pubticker/btcusd", &currency)
+
+	if err != nil {
+		fmt.Println(err.Error())
+	}
 }
 
 // Timeout calculate how much time is left before the next run in seconds
 // Will return 0.0 when the service can run
-func (srv *Service) Timeout() float64 {
+func (srv *Service) Timeout() time.Duration {
 	timeout := 2.3 - getTimeSinceLastRun()
 
 	if timeout < 0.0 {
 		return 0.0
 	}
 
-	return timeout
+	return time.Duration(timeout)
 }
 
 // make sure struct implements interface
