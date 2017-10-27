@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/signal"
 	"time"
 
 	"net/http"
@@ -14,10 +13,33 @@ import (
 	"github.com/go-chi/valve"
 )
 
+var baseURI = "/"
+
+// Configure sets the base uri for the web server
+// @param baseUri string does not need to start nor end with `/`
+func Configure(baseUri string) {
+	baseURI = baseUri
+
+	// make sure there are forward slashes
+	baseURI = "/" + baseURI + "/"
+
+	// trim duplicate slashes
+	var result string
+	previous := '¤' // assumption: a uri never starts with ¤
+	for _, r := range baseURI {
+		if r == '/' && r != previous {
+			result += string(r)
+		}
+		previous = r
+	}
+
+	// update the base uri
+	baseURI = result
+}
+
 // UI Set up a web interface in a seperate thread
 // Inspired from: https://github.com/btcsuite/btcd/blob/master/btcd.go
-func UI(done chan error) {
-
+func UI(done chan error, sig chan struct{}) {
 	fmt.Println("Starting http server..")
 
 	// Our graceful valve shut-off package to manage code preemption and
@@ -31,11 +53,11 @@ func UI(done chan error) {
 	router := chi.NewRouter()
 	middlewares.Setup(router)
 
-	router.Get("/", func(w http.ResponseWriter, r *http.Request) {
+	router.Get(baseURI, func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("sup"))
 	})
 
-	router.Get("/slow", func(w http.ResponseWriter, r *http.Request) {
+	router.Get(baseURI+"slow", func(w http.ResponseWriter, r *http.Request) {
 
 		valve.Lever(r.Context()).Open()
 		defer valve.Lever(r.Context()).Close()
@@ -67,19 +89,16 @@ func UI(done chan error) {
 
 	srv := http.Server{Addr: port, Handler: chi.ServerBaseContext(baseCtx, router)}
 
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
 	go func() {
-		for range c {
-			// sig is a ^C, handle it
-			fmt.Println(" ")
-			fmt.Println("shutting down web server..")
+		for range sig {
+			// time to terminate web server
+			fmt.Println("\tWeb server .. ")
 
 			// first valv
-			valv.Shutdown(20 * time.Second)
+			valv.Shutdown(1 * time.Second)
 
 			// create context with timeout
-			ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 			defer cancel()
 
 			// start http shutdown
@@ -87,10 +106,11 @@ func UI(done chan error) {
 
 			// verify, in worst case call cancel via defer
 			select {
-			case <-time.After(21 * time.Second):
+			case <-time.After(5 * time.Second):
 				fmt.Println("not all connections done")
 			case <-ctx.Done():
-
+				fmt.Println("OK")
+				return
 			}
 		}
 	}()
