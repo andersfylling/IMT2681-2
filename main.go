@@ -7,6 +7,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/andersfylling/IMT2681-2/database"
 	"github.com/andersfylling/IMT2681-2/services"
 	"github.com/andersfylling/IMT2681-2/ui"
 )
@@ -16,6 +17,10 @@ func main() {
 	signal.Notify(termSignal, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
 
 	stop := make(chan struct{})
+
+	// start up database
+	databaseChan := make(chan error)
+	go database.Connect(databaseChan, stop)
 
 	// start web server
 	webserverChan := make(chan error)
@@ -44,6 +49,8 @@ func main() {
 	fmt.Println("\tServices OK")
 	<-webserverChan
 	fmt.Println("\tWeb server OK")
+	<-databaseChan
+	fmt.Println("\tDatabase OK")
 
 	// all is done
 	fmt.Println("Shutdown complete")
