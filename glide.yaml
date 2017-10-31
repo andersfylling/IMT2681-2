@@ -1,0 +1,8 @@
+package: github.com/andersfylling/IMT2681-2
+import:
+- package: github.com/go-chi/chi
+  version: ^3.3.0
+  subpackages:
+  - middleware
+- package: github.com/go-chi/valve
+- package: gopkg.in/mgo.v2
