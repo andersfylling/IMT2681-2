@@ -3,11 +3,13 @@ package webhook
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/andersfylling/IMT2681-2/database/dbsession"
 	"github.com/andersfylling/IMT2681-2/database/documents/document"
+	"github.com/andersfylling/IMT2681-2/utils"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -48,6 +50,12 @@ func NewFromRequest(r *http.Request) (*Document, error) {
 	decoder := json.NewDecoder(r.Body)
 	wh := New()
 	err := decoder.Decode(wh)
+
+	// validate the webhook url
+	if err == nil && !utils.ValidURL(wh.URL) {
+		err = errors.New("The given URL is not valid: " + wh.URL)
+	}
+
 	return wh, err
 }
 
