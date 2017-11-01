@@ -1,13 +1,12 @@
 package currencyfetcher
 
 import (
-	"encoding/json"
 	"fmt"
-	"net/http"
 	"time"
 
 	"github.com/andersfylling/IMT2681-2/database/documents/currency"
 	"github.com/andersfylling/IMT2681-2/services/service"
+	"github.com/andersfylling/IMT2681-2/utils"
 )
 
 var lastRun time.Duration
@@ -24,18 +23,6 @@ func getTimeSinceLastRun() time.Duration {
 func init() {
 	lastRun = 0 // So that it runs as soon as the service starts up
 	firstRun = true
-}
-
-var myClient = &http.Client{Timeout: 5 * time.Second}
-
-func getJSON(url string, target interface{}) error {
-	r, err := myClient.Get(url)
-	if err != nil {
-		return err
-	}
-	defer r.Body.Close()
-
-	return json.NewDecoder(r.Body).Decode(target)
 }
 
 // Service is of type service.Interface
@@ -75,8 +62,7 @@ func (srv *Service) Run() {
 		return // already have a currency rate
 	}
 
-	err := getJSON("http://api.fixer.io/latest?base=EUR", &currency)
-
+	err := utils.GetJSON("http://api.fixer.io/latest?base=EUR", &currency)
 	if err != nil {
 		fmt.Println(err.Error())
 	}
