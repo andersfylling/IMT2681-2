@@ -1,25 +1,18 @@
 package routes
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
-	"net/url"
 
+	webhookDoc "github.com/andersfylling/IMT2681-2/database/documents/webhook"
 	"github.com/andersfylling/IMT2681-2/ui/routes/average"
 	"github.com/andersfylling/IMT2681-2/ui/routes/evaluationtrigger"
 	"github.com/andersfylling/IMT2681-2/ui/routes/latest"
 	"github.com/andersfylling/IMT2681-2/ui/routes/webhook"
 	"github.com/go-chi/chi"
+	"gopkg.in/mgo.v2/bson"
 )
-
-// https://golangcode.com/how-to-check-if-a-string-is-a-url/
-func validURL(link string) bool {
-	_, err := url.ParseRequestURI(link)
-	if err != nil {
-		return false
-	}
-
-	return true
-}
 
 func notFound(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(404)
@@ -50,12 +43,22 @@ func SetupRoutes(router *chi.Mux) {
 	router.Get("/evaluationtrigger", evaluationtrigger.Info)
 
 	// invoking a webhook, otherwise a fallback
-	router.Get("/{webhookURL}", func(w http.ResponseWriter, r *http.Request) {
-		webhookURL := chi.URLParam(r, "webhookURL")
+	router.Get("/{webhookID}", func(w http.ResponseWriter, r *http.Request) {
+		webhookID := chi.URLParam(r, "webhookID")
 
-		if validURL(webhookURL) {
-			// check if it exist in database
-			// if it does not exist in the database call notFound(...)
+		wh := webhookDoc.New()
+		wh.ID = bson.ObjectIdHex(webhookID)
+
+		if len(wh.Find()) > 0 {
+			jsonStr, err := json.Marshal(wh.Find()[0].(*webhookDoc.Document))
+			if err != nil {
+				w.WriteHeader(503)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprint(w, string(jsonStr))
+			w.WriteHeader(200)
+			return
 		} else {
 			notFound(w, r)
 		}

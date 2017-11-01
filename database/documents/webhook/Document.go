@@ -52,7 +52,7 @@ func NewFromRequest(r *http.Request) (*Document, error) {
 	err := decoder.Decode(wh)
 
 	// validate the webhook url
-	if err == nil && !utils.ValidURL(wh.URL) {
+	if err == nil && wh.URL != "" && !utils.ValidURL(wh.URL) {
 		err = errors.New("The given URL is not valid: " + wh.URL)
 	}
 
@@ -120,15 +120,20 @@ func (c *Document) Find() []interface{} {
 	}
 	defer ses.Close()
 
-	err = con.Find(bson.M{
-		"base":    c.Base,
-		"target":  c.Target,
-		"current": c.Current,
-		"min":     c.Min,
-		"max":     c.Max,
-	}).All(&results)
-
-	fmt.Println(len(results))
+	// If no _id is set, use the content and assume we are invoking a document
+	if c.ID.Hex() == "" {
+		err = con.Find(bson.M{
+			"base":    c.Base,
+			"target":  c.Target,
+			"current": c.Current,
+			"min":     c.Min,
+			"max":     c.Max,
+		}).All(&results)
+	} else {
+		err = con.Find(bson.M{
+			"_id": c.ID,
+		}).All(&results)
+	}
 
 	if err != nil {
 		fmt.Println(err.Error())

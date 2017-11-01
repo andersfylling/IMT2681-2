@@ -10,5 +10,6 @@ COPY . .
 RUN curl https://glide.sh/get | sh
 RUN glide install
 
-ENV IMT_DATABASE_USER cloudtech
-ENV IMT_DATABASE_PASS cloudtech
+# The URL needs to be replaced. Please see extra details given with this submission.
+ENV IMT_DATABASE_MONGODB_URL mongodb://<dbuser>:<dbpassword>@ds045099.mlab.com:45099/core
+ENV IMT_DATABASE_MONGODB_DATABASE core

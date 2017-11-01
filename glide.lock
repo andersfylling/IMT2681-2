@@ -1,0 +1,17 @@
+hash: 1cf75b51a5b3889cf83e99ca08d840ec9b2c32490288499491882a0f2f4c4f8c
+updated: 2017-11-01T04:14:44.826679866+01:00
+imports:
+- name: github.com/go-chi/chi
+  version: f7c66f685bcab06bcce78ac212c5f3553c063d19
+  subpackages:
+  - middleware
+- name: github.com/go-chi/valve
+  version: 9e45288364f420dd8e094fab4f64437fca5245a6
+- name: gopkg.in/mgo.v2
+  version: 3f83fa5005286a7fe593b055f0d7771a7dce4655
+  subpackages:
+  - bson
+  - internal/json
+  - internal/sasl
+  - internal/scram
+testImports: []
