@@ -13,6 +13,7 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
+// Document is a valid MongoDB document that can be used for database operands
 type Document struct {
 	ID      bson.ObjectId `json:"_id" bson:"_id,omitempty"`
 	URL     string        `json:"webhookURL"`
@@ -23,13 +24,14 @@ type Document struct {
 	Max     float64       `json:"maxTriggerValue"`
 }
 
-// Invoke For invoking discord webhooks
+// Webhook For invoking discord webhooks
 type Webhook struct {
 	Content   string `json:"content"`
 	Username  string `json:"username"`
 	AvatarURL string `json:"avatar_url"`
 }
 
+// Collection Which collection this document resides in
 const Collection = "Webhook"
 
 // New Creates a new instance of the document.
@@ -59,7 +61,7 @@ func NewFromRequest(r *http.Request) (*Document, error) {
 	return wh, err
 }
 
-// Inserts the document as a new one into the collection and returns the id
+// Insert the document as a new one into the collection and returns the id
 func (c *Document) Insert() (id bson.ObjectId, err error) {
 	id = ""
 	err = nil
@@ -122,6 +124,15 @@ func (c *Document) Remove() []interface{} {
 	}).All(&results)
 
 	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	err = con.Remove(bson.M{"_id": c.ID})
+	if err != nil {
+		// reset array
+		if len(results) > 0 {
+			results = results[:0]
+		}
 		fmt.Println(err.Error())
 	}
 
