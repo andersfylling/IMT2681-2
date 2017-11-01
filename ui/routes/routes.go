@@ -34,6 +34,7 @@ func SetupRoutes(router *chi.Mux) {
 
 	// webhooks
 	router.Post("/", webhook.CreateWebhook)
+	router.Post("/webhookUrl", webhook.InvokeWebhook)
 	router.Get("/", webhook.Info)
 
 	// latest exchange rates

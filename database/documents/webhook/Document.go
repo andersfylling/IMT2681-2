@@ -3,6 +3,7 @@ package webhook
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/andersfylling/IMT2681-2/database/dbsession"
@@ -11,12 +12,13 @@ import (
 )
 
 type Document struct {
-	ID     bson.ObjectId `json:"_id" bson:"_id,omitempty"`
-	URL    string        `json:"webhookURL"`
-	Base   string        `json:"baseCurrency"`
-	Target string        `json:"targetCurrency"`
-	Min    float64       `json:"minTriggerValue"`
-	Max    float64       `json:"maxTriggerValue"`
+	ID      bson.ObjectId `json:"_id" bson:"_id,omitempty"`
+	URL     string        `json:"webhookURL"`
+	Base    string        `json:"baseCurrency"`
+	Target  string        `json:"targetCurrency"`
+	Current float64       `json:"currentRate"`
+	Min     float64       `json:"minTriggerValue"`
+	Max     float64       `json:"maxTriggerValue"`
 }
 
 // Invoke For invoking discord webhooks
@@ -25,6 +27,8 @@ type Webhook struct {
 	Username  string `json:"username"`
 	AvatarURL string `json:"avatar_url"`
 }
+
+const Collection = "Webhook"
 
 // New Creates a new instance of the document.
 // Which can then be saved, removed, find matches, etc.
@@ -52,7 +56,7 @@ func (c *Document) Insert() (id bson.ObjectId, err error) {
 	id = ""
 	err = nil
 
-	ses, con, err := dbsession.GetCollection("Webhook")
+	ses, con, err := dbsession.GetCollection(Collection)
 	if err != nil {
 		return id, err
 	}
@@ -70,28 +74,68 @@ func (c *Document) Save() (old, new document.Interface) {
 	return old, new
 }
 
+func interfaceToDocument(interfaces []interface{}) []*Document {
+	docs := make([]*Document, len(interfaces))
+	for i, v := range interfaces {
+		docs[i] = v.(*Document)
+	}
+
+	return docs
+}
+
+func documentsToInterfaces(docs []*Document) []interface{} {
+	interfaces := make([]interface{}, len(docs))
+	for i, v := range docs {
+		interfaces[i] = v
+	}
+
+	return interfaces
+}
+
 // Remove can remove documents in bulk, and deleted documents are returned.
 // Any document that fits the rule will get deleted.
 // If the array is empty, then no documents where deleted.
 // int equals their old ID
-func (c *Document) Remove() map[int]document.Interface {
-	results := make(map[int]document.Interface)
+func (c *Document) Remove() []document.Interface {
+	results := []document.Interface{}
 
 	return results
 }
 
 // Find returns an empty array when no match was found
-func (c *Document) Find() map[int]document.Interface {
-	results := make(map[int]document.Interface)
+func (c *Document) Find() []interface{} {
+	var results []*Document
 
-	return results
+	ses, con, err := dbsession.GetCollection(Collection)
+	if err != nil {
+		return documentsToInterfaces(results)
+	}
+	defer ses.Close()
+
+	err = con.Find(bson.M{
+		"base":    c.Base,
+		"target":  c.Target,
+		"current": c.Current,
+		"min":     c.Min,
+		"max":     c.Max,
+	}).All(&results)
+
+	fmt.Println(len(results))
+
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	return documentsToInterfaces(results)
 }
 
-func (c *Document) FindAndInvoke() {
+func (c *Document) FindAndInvoke() []*Document {
 	webhooks := c.Find()
 	for _, hook := range webhooks {
-		(hook.(*Document)).InvokeWebhook("content", "username", "avatarURL")
+		(hook.(*Document)).InvokeWebhook("test", "lol", "")
 	}
+
+	return interfaceToDocument(webhooks)
 }
 
 // InvokeWebhook invokes the webhook based on data from the Document
@@ -110,6 +154,7 @@ func (c *Document) InvokeWebhook(content, username, avatarURL string) error {
 
 	jsonStr := new(bytes.Buffer)
 	json.NewEncoder(jsonStr).Encode(body)
+	fmt.Println(jsonStr)
 	res, err := http.Post(c.URL, "application/json; charset=utf-8", jsonStr)
 
 	if res.StatusCode == 200 {

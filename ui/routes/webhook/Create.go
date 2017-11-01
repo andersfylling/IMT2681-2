@@ -28,6 +28,28 @@ func CreateWebhook(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(id.Hex()))
 }
 
+// InvokeWebhook finds one or more webhooks in database and invokes them
+func InvokeWebhook(w http.ResponseWriter, r *http.Request) {
+	wh, err := webhook.NewFromRequest(r)
+	if err != nil {
+		w.WriteHeader(503)
+		fmt.Println(err.Error())
+		return
+	}
+
+	// save webhook to database
+	arr := wh.FindAndInvoke()
+
+	// if there was a match send OK
+	if len(arr) > 0 {
+		w.WriteHeader(200)
+	} else {
+		w.WriteHeader(204) // No content
+	}
+
+	return
+}
+
 // Info some details about this uri
 func Info(w http.ResponseWriter, r *http.Request) {
 	res := ""
