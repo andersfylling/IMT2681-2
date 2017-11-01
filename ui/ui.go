@@ -16,9 +16,8 @@ import (
 
 // UI Set up a web interface in a seperate thread
 // Inspired from: https://github.com/btcsuite/btcd/blob/master/btcd.go
-func UI(done chan error, sig chan struct{}) {
-	fmt.Println("Starting http server..")
-
+// Must be run as a goroutine!
+func UI(done chan<- error, rdy chan<- struct{}, sig <-chan struct{}) {
 	// Our graceful valve shut-off package to manage code preemption and
 	// shutdown signaling.
 	valv := valve.New()
@@ -42,6 +41,7 @@ func UI(done chan error, sig chan struct{}) {
 	srv := http.Server{Addr: port, Handler: chi.ServerBaseContext(baseCtx, router)}
 
 	go func() {
+		close(rdy)
 		for {
 			select {
 			case <-sig:

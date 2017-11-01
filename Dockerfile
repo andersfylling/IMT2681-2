@@ -1,3 +1,5 @@
+# Not configured for heroku
+# Docker only
 FROM golang:1.8
 MAINTAINER https://github.com/andersfylling
 

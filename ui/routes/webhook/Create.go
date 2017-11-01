@@ -1,10 +1,31 @@
 package webhook
 
-import "net/http"
+import (
+	"fmt"
+	"net/http"
+
+	"github.com/andersfylling/IMT2681-2/database/documents/webhook"
+)
 
 // CreateWebhook ..
 func CreateWebhook(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Register webhook"))
+	wh, err := webhook.NewFromRequest(r)
+	if err != nil {
+		w.WriteHeader(503)
+		fmt.Println(err.Error())
+		return
+	}
+
+	// save webhook to database
+	id, err := wh.Insert()
+	if err != nil {
+		w.WriteHeader(503)
+		return
+	}
+
+	// only send the id as response
+	w.Header().Set("Content-Type", "text/plain")
+	w.Write([]byte(id.Hex()))
 }
 
 // Info some details about this uri

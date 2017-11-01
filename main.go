@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/andersfylling/IMT2681-2/database"
 	"github.com/andersfylling/IMT2681-2/services"
@@ -14,23 +13,35 @@ import (
 
 func main() {
 	termSignal := make(chan os.Signal, 1)
+	stop := make(chan struct{})
 	signal.Notify(termSignal, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
 
-	stop := make(chan struct{})
+	fmt.Println("Starting up")
 
 	// start up database
 	databaseChan := make(chan error)
-	go database.Connect(databaseChan, stop)
+	databaseRdyChan := make(chan struct{})
+	fmt.Print("\tConnecting to database .. ")
+	go database.Connect(databaseChan, databaseRdyChan, stop)
 
 	// start web server
+	<-databaseRdyChan
+	fmt.Println("OK")
 	webserverChan := make(chan error)
-	go ui.UI(webserverChan, stop)
+	webserverRdyChan := make(chan struct{})
+	fmt.Print("\tStarting web server .. ")
+	go ui.UI(webserverChan, webserverRdyChan, stop)
 
 	// start services
+	<-webserverRdyChan
+	fmt.Println("OK")
 	servicesChan := make(chan error)
-	go services.Run(servicesChan, stop)
+	servicesRdyChan := make(chan struct{})
+	fmt.Print("\tInitiating services .. ")
+	go services.Run(servicesChan, servicesRdyChan, stop)
 
-	time.Sleep(10 * time.Millisecond)
+	<-servicesRdyChan
+	fmt.Println("OK")
 	fmt.Println("Program is now running.  Press CTRL-C to exit.")
 
 	// Shut down using timeout by simulating the interupt signal
