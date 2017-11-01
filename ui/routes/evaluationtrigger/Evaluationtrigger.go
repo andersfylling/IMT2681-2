@@ -1,10 +1,27 @@
 package evaluationtrigger
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/andersfylling/IMT2681-2/database/documents/webhook"
+)
 
 // FireAllWebhooks Fires all webhooks
 func FireAllWebhooks(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("here you get an latest exchange rates"))
+	arr, err := webhook.InvokeAll()
+	if err != nil {
+		w.WriteHeader(503)
+		return
+	}
+
+	// if there was a match send OK
+	if len(arr) > 0 {
+		w.WriteHeader(200)
+	} else {
+		w.WriteHeader(204) // No content
+	}
+
+	return
 }
 
 // Info some details about this uri

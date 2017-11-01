@@ -185,7 +185,6 @@ func (c *Document) InvokeWebhook(content, username, avatarURL string) error {
 
 	jsonStr := new(bytes.Buffer)
 	json.NewEncoder(jsonStr).Encode(body)
-	fmt.Println(jsonStr)
 	res, err := http.Post(c.URL, "application/json; charset=utf-8", jsonStr)
 
 	if res.StatusCode == 200 {
@@ -193,6 +192,23 @@ func (c *Document) InvokeWebhook(content, username, avatarURL string) error {
 	}
 
 	return err
+}
+
+// InvokeAll invokes all stored webhooks
+func InvokeAll() ([]*Document, error) {
+	var results []*Document
+
+	ses, con, err := dbsession.GetCollection(Collection)
+	if err != nil {
+		return results, err
+	}
+	defer ses.Close()
+
+	err = con.Find(nil).All(&results)
+	for _, doc := range results {
+		doc.InvokeWebhook("Invoked for evaluation testing", "", "")
+	}
+	return results, err
 }
 
 // make sure struct implements interface
