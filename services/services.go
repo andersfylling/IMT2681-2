@@ -12,16 +12,18 @@ var runnableServices map[string]service.Interface
 
 // Load loads all services into memory and initiate their load func
 func Load() {
+	runnableServices = make(map[string]service.Interface)
+
 	// Add desired services
-	uninitializedServices := []service.Interface{
-		(*currencyfetcher.Service)(nil),
-	}
+	cf := currencyfetcher.NewService()
+	cf.Load()
+	runnableServices[cf.Title()] = service.Interface(cf)
 
 	// load each service
-	for _, srv := range uninitializedServices {
-		runnableServices[srv.Title()] = srv
-		srv.Load()
-	}
+	// for _, srv := range uninitializedServices {
+	// 	runnableServices[srv.Title()] = service.Interface(srv)
+	// 	srv.Load()
+	// }
 }
 
 // Run create a loop that runs every service according to their configuration.
@@ -29,9 +31,12 @@ func Load() {
 // Must be run as a goroutine!
 func Run(done chan<- error, rdy chan<- struct{}, sig <-chan struct{}) {
 
+	Load()
+
+	timeout := time.Now()
+	lastRun := time.Now()
 	close(rdy)
 	for {
-		timeout := time.Duration(0)
 		select {
 		case <-sig: // stop service loop
 			time.Sleep(100 * time.Millisecond)
@@ -46,23 +51,28 @@ func Run(done chan<- error, rdy chan<- struct{}, sig <-chan struct{}) {
 			return
 
 		default: // run services
-			time.Sleep(timeout * time.Millisecond)
+			time.Sleep(time.Millisecond * 500)
+
+			// check if we can run the services
+			if !timeout.Before(time.Now().UTC().Add(1 * time.Hour)) {
+				continue
+			}
+
 			// get a timeout, this way it will never be below a timeout
 			// if it is below a timeout it will cause unnecesary func calls/checks
-			for _, srv := range runnableServices {
-				timeout = srv.Timeout()
-				break // This is the ugliest way I've seen in my life to access a
-				// random/first entry
-			}
+			// A service will always have a lower timeout than 1000 hours.
+			nextRun := time.Duration(1000 * time.Hour)
 
 			// For every service initiate their main action
 			for _, srv := range runnableServices {
-				if srv.Timeout() == 0 {
+				if srv.Timeout() == time.Duration(0) {
 					srv.Run()
-				} else if timeout > srv.Timeout() {
-					timeout = srv.Timeout()
+				} else if nextRun > srv.Timeout() {
+					nextRun = srv.Timeout()
 				}
 			}
-		}
-	}
+			lastRun = time.Now().UTC().Add(1 * time.Hour)
+			timeout = lastRun.Add(nextRun)
+		} // select
+	} // for
 }

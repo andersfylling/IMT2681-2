@@ -63,4 +63,21 @@ func SetupRoutes(router *chi.Mux) {
 			notFound(w, r)
 		}
 	})
+	router.Delete("/{webhookID}", func(w http.ResponseWriter, r *http.Request) {
+		webhookID := chi.URLParam(r, "webhookID")
+
+		wh := webhookDoc.New()
+		wh.ID = bson.ObjectIdHex(webhookID)
+
+		if len(wh.Find()) > 0 {
+			deleted := len(wh.Remove())
+			if deleted == 0 {
+				w.WriteHeader(503)
+			} else {
+				w.WriteHeader(200)
+			}
+		} else {
+			w.WriteHeader(204)
+		}
+	})
 }

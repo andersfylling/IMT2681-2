@@ -104,10 +104,28 @@ func documentsToInterfaces(docs []*Document) []interface{} {
 // Any document that fits the rule will get deleted.
 // If the array is empty, then no documents where deleted.
 // int equals their old ID
-func (c *Document) Remove() []document.Interface {
-	results := []document.Interface{}
+func (c *Document) Remove() []interface{} {
+	var results []*Document
 
-	return results
+	if c.ID.Hex() == "" {
+		return documentsToInterfaces(results)
+	}
+
+	ses, con, err := dbsession.GetCollection(Collection)
+	if err != nil {
+		return documentsToInterfaces(results)
+	}
+	defer ses.Close()
+
+	err = con.Find(bson.M{
+		"_id": c.ID,
+	}).All(&results)
+
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	return documentsToInterfaces(results)
 }
 
 // Find returns an empty array when no match was found
