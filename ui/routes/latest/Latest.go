@@ -19,31 +19,41 @@ type RateReq struct {
 // ExchangeRates Responds with the latest exchange rates for given currencies
 func ExchangeRates(w http.ResponseWriter, r *http.Request) {
 
-	today := time.Now().UTC().Add(1 * time.Hour) // CET = UTC+1
+	decoder := json.NewDecoder(r.Body)
+	requestedRate := &RateReq{}
+	err := decoder.Decode(requestedRate)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	rate, err := ExchangeRatesFromLatest(w, requestedRate, 0)
+	if err != nil {
+		w.WriteHeader(503)
+		fmt.Println(err.Error())
+		return
+	}
+
+	w.Write([]byte(strconv.FormatFloat(rate, 'f', -1, 64)))
+}
+func ExchangeRatesFromLatest(w http.ResponseWriter, requestedRate *RateReq, offset int) (float64, error) {
+
+	today := time.Now().UTC().Add(1*time.Hour).AddDate(0, 0, -offset) // CET = UTC+1
 	doc := currency.New()
 	doc.Date = today.Format("2006-01-02")
 
 	// make sure it exists in database, otherwise use fixer.io
 	if len(doc.Find()) == 0 {
 		// get data from fixer, and save it to database
-		err := utils.GetJSON("http://api.fixer.io/latest?base=EUR", &doc)
+		err := utils.GetJSON("http://api.fixer.io/"+doc.Date+"?base=EUR", &doc)
 		if err != nil {
-			fmt.Println(err.Error())
-			w.WriteHeader(503)
-			return
+			return -1.0, err
 		}
 
 		// Store data to database
 		doc.Insert()
-	}
-
-	decoder := json.NewDecoder(r.Body)
-	requestedRate := &RateReq{}
-	err := decoder.Decode(requestedRate)
-	if err != nil {
-		fmt.Println(err.Error())
-		w.WriteHeader(503)
-		return
+	} else {
+		doc = doc.Find()[0].(*currency.Document) // populate with the db data
 	}
 
 	// convert the rate into EUR
@@ -54,7 +64,7 @@ func ExchangeRates(w http.ResponseWriter, r *http.Request) {
 
 	rate *= doc.Rates[requestedRate.Target]
 
-	w.Write([]byte(strconv.FormatFloat(rate, 'f', -1, 64)))
+	return rate, nil
 }
 
 // Info some details about this uri

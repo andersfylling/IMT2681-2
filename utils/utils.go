@@ -2,6 +2,7 @@ package utils
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 	"time"
@@ -21,6 +22,7 @@ func GetJSON(url string, target interface{}) error {
 	myClient := &http.Client{Timeout: 5 * time.Second}
 	r, err := myClient.Get(url)
 	if err != nil {
+		fmt.Println("get json issue")
 		return err
 	}
 	defer r.Body.Close()
