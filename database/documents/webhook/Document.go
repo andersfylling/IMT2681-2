@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/andersfylling/IMT2681-2/database/dbsession"
 	"github.com/andersfylling/IMT2681-2/database/documents/document"
@@ -19,7 +20,7 @@ type Document struct {
 	URL     string        `json:"webhookURL"`
 	Base    string        `json:"baseCurrency"`
 	Target  string        `json:"targetCurrency"`
-	Current float64       `json:"currentRate"`
+	Current float64       `json:"currentRate,omitempty"`
 	Min     float64       `json:"minTriggerValue"`
 	Max     float64       `json:"maxTriggerValue"`
 }
@@ -171,13 +172,33 @@ func (c *Document) Find() []interface{} {
 	return documentsToInterfaces(results)
 }
 
+// FindAndInvoke ..
 func (c *Document) FindAndInvoke() []*Document {
-	webhooks := c.Find()
-	for _, hook := range webhooks {
-		(hook.(*Document)).InvokeWebhook("test", "lol", "")
+	var results []*Document
+
+	ses, con, err := dbsession.GetCollection(Collection)
+	if err != nil {
+		return results
+	}
+	defer ses.Close()
+
+	err = con.Find(bson.M{
+		"base":   c.Base,
+		"target": c.Target,
+		"$or": []bson.M{
+			bson.M{"min": bson.M{"$lt": c.Current}},
+			bson.M{"max": bson.M{"$gt": c.Current}},
+		},
+	}).All(&results)
+
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	for _, hook := range results {
+		hook.InvokeWebhook("Triggered by value "+strconv.FormatFloat(c.Current, 'f', -1, 64), "Invoked by request", "")
 	}
 
-	return interfaceToDocument(webhooks)
+	return results
 }
 
 // InvokeWebhook invokes the webhook based on data from the Document
