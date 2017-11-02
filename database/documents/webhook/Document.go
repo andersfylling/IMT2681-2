@@ -65,7 +65,6 @@ func NewFromRequest(r *http.Request) (*Document, error) {
 // Insert the document as a new one into the collection and returns the id
 func (c *Document) Insert() (id bson.ObjectId, err error) {
 	id = ""
-	err = nil
 
 	ses, con, err := dbsession.GetCollection(Collection)
 	if err != nil {
