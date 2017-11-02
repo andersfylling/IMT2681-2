@@ -8,7 +8,9 @@ import (
 	"time"
 )
 
-// https://golangcode.com/how-to-check-if-a-string-is-a-url/
+// ValidURL converts the string into a url.URL struct, but returns an error on fail
+// this is taken advantage of to validate the url syntax
+// struct https://golangcode.com/how-to-check-if-a-string-is-a-url/
 func ValidURL(link string) bool {
 	_, err := url.ParseRequestURI(link)
 	if err != nil {
@@ -18,6 +20,8 @@ func ValidURL(link string) bool {
 	return true
 }
 
+// GetJSON does a GET request and parses the response body into the target interface
+// https://stackoverflow.com/questions/15672556/handling-json-post-request-in-go
 func GetJSON(url string, target interface{}) error {
 	myClient := &http.Client{Timeout: 5 * time.Second}
 	r, err := myClient.Get(url)

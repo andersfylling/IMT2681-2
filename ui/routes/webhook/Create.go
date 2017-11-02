@@ -7,7 +7,7 @@ import (
 	"github.com/andersfylling/IMT2681-2/database/documents/webhook"
 )
 
-// CreateWebhook ..
+// CreateWebhook Creates a new webhook from the requests body
 func CreateWebhook(w http.ResponseWriter, r *http.Request) {
 	wh, err := webhook.NewFromRequest(r)
 	if err != nil {

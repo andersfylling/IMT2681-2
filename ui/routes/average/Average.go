@@ -18,6 +18,7 @@ func ForLastSevenDays(w http.ResponseWriter, r *http.Request) {
 	err := decoder.Decode(requestedRate)
 	if err != nil {
 		fmt.Println(err)
+		w.WriteHeader(503)
 		return
 	}
 

@@ -11,6 +11,7 @@ import (
 	"github.com/andersfylling/IMT2681-2/utils"
 )
 
+// RateReq is the json struct for incoming request bodies
 type RateReq struct {
 	Base   string `json:"baseCurrency"`
 	Target string `json:"targetCurrency"`
@@ -36,6 +37,12 @@ func ExchangeRates(w http.ResponseWriter, r *http.Request) {
 
 	w.Write([]byte(strconv.FormatFloat(rate, 'f', -1, 64)))
 }
+
+// ExchangeRatesFromLatest Gets the rates for a given date.
+// offset can be used to set how many days you want to go from latest or current Date
+// It queries the database, and if there exist no entry for given Date
+// it queries fixer.io to retrieve it and then stores it into the database.
+// the rate is then returned as a float
 func ExchangeRatesFromLatest(w http.ResponseWriter, requestedRate *RateReq, offset int) (float64, error) {
 
 	today := time.Now().UTC().Add(1*time.Hour).AddDate(0, 0, -offset) // CET = UTC+1
